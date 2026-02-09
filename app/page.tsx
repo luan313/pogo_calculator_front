@@ -37,7 +37,7 @@ export default function Home() {
     setLoading(true);
     const api_url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     try {
-      const res = await fetch(`${api_url}/api/get_tier_list`);
+      const res = await fetch(`${api_url}/get_tier_list`);
       if (res.ok) {
         const data = await res.json();
         setAllData(data);
