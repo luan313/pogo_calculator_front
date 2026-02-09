@@ -37,6 +37,7 @@ export default function Home() {
     setLoading(true);
     const api_url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     try {
+      // Ajustado: Removido o /api/ para bater com seu APIRouter
       const res = await fetch(`${api_url}/get_tier_list`);
       if (res.ok) {
         const data = await res.json();
@@ -53,8 +54,9 @@ export default function Home() {
     fetchAllTeams();
   }, []);
 
-  // GARANTIA: Se allData for null ou a liga não existir, usamos um objeto vazio
+  // Seleciona o dicionário de tipos da liga atual
   const currentTeams = allData?.[selectedLeague] ?? {};
+  // Pega as chaves (tipos) que possuem Pokémon cadastrados
   const tiposDisponiveis = Object.keys(currentTeams).sort();
 
   return (
@@ -70,13 +72,13 @@ export default function Home() {
 
         <button
           onClick={() => setShowAddForm(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-blue-900/20 transition-all active:scale-95"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 transition-all active:scale-95"
         >
           <Plus size={20} /> ADICIONAR POKÉMON
         </button>
       </div>
 
-      {/* SELETOR DE LIGAS */}
+      {/* TABS DE LIGAS */}
       <div className="max-w-fit mx-auto bg-zinc-900 p-1.5 rounded-2xl flex gap-1 mb-12 border border-zinc-800">
         {(['great', 'ultra', 'master'] as const).map((league) => (
           <button
@@ -94,12 +96,12 @@ export default function Home() {
         ))}
       </div>
 
-      {/* LISTAGEM PRINCIPAL */}
+      {/* LISTAGEM POR TIPO */}
       <div className="max-w-7xl mx-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 className="animate-spin text-blue-600" size={40} />
-            <p className="font-bold text-zinc-500 animate-pulse">Sincronizando dados...</p>
+            <p className="font-bold text-zinc-500">Sincronizando com o Banco...</p>
           </div>
         ) : tiposDisponiveis.length > 0 ? (
           tiposDisponiveis.map((tipo) => (
@@ -112,30 +114,34 @@ export default function Home() {
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {/* O SEGREDO ESTÁ AQUI: O uso do ?. garante que se for undefined, o map não é chamado */}
-                {currentTeams[tipo]?.map((pokemon: any) => (
+                {/* Proteção obrigatória com ?.map */}
+                {currentTeams[tipo]?.map((pokemon: any, idx: number) => (
                   <div 
-                    key={pokemon.id} 
+                    key={`${pokemon.nome}-${idx}`} 
                     className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl hover:border-blue-500/50 transition-colors group relative overflow-hidden"
                   >
                     <div className={`absolute -right-2 -top-2 p-4 rounded-full opacity-10 ${typeConfigs[tipo]?.color || 'bg-blue-600'}`}>
                       <Shield size={24} />
                     </div>
                     
+                    {/* Rank da Liga (Opcional) */}
                     <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-lg mb-2 inline-block uppercase">
-                      RANK #{pokemon.rank_liga_grande || pokemon.rank_liga_ultra || pokemon.rank_liga_mestra || '?' }
+                      RANK #{pokemon.rank_liga_grande || pokemon.rank_liga_ultra || pokemon.rank_liga_mestra || '--'}
                     </span>
                     
                     <h3 className="text-lg font-bold capitalize mb-1">{pokemon.nome}</h3>
-                    <div className="flex justify-between items-center text-sm">
+                    
+                    {/* IV Rank (Opcional) */}
+                    <div className="flex justify-between items-center text-sm mb-4">
                       <span className="text-zinc-500 font-medium">IV Rank</span>
                       <span className="font-black text-zinc-300">
-                        #{pokemon.rank_iv_grande || pokemon.rank_iv_ultra || pokemon.rank_iv_mestra || '?' }
+                        #{pokemon.rank_iv_grande || pokemon.rank_iv_ultra || pokemon.rank_iv_mestra || '--'}
                       </span>
                     </div>
                     
-                    <div className="mt-4 pt-4 border-t border-zinc-800 flex justify-between text-[10px] font-bold text-zinc-500">
-                      <span>{pokemon.ataque_iv} / {pokemon.defesa_iv} / {pokemon.hp_iv}</span>
+                    {/* IVs Detalhados (Opcionais) */}
+                    <div className="pt-4 border-t border-zinc-800 flex justify-between text-[10px] font-bold text-zinc-500">
+                      <span>{pokemon.ataque_iv ?? '?'} / {pokemon.defesa_iv ?? '?'} / {pokemon.hp_iv ?? '?'}</span>
                     </div>
                   </div>
                 ))}
@@ -143,13 +149,13 @@ export default function Home() {
             </section>
           ))
         ) : (
-          <div className="text-center py-20 bg-zinc-900/50 rounded-3xl border-2 border-dashed border-zinc-800">
-            <p className="text-zinc-500 font-bold">Nenhum Pokémon encontrado.</p>
+          <div className="text-center py-20 bg-zinc-900/50 rounded-3xl border-2 border-dashed border-zinc-800 text-zinc-500 font-bold">
+            Nenhum Pokémon encontrado.
           </div>
         )}
       </div>
 
-      {/* MODAL */}
+      {/* MODAL DO FORMULÁRIO */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md relative">
@@ -161,7 +167,7 @@ export default function Home() {
             </button>
             <AddPokemonForm onSuccess={() => {
               setShowAddForm(false);
-              fetchAllTeams();
+              fetchAllTeams(); // Atualiza a lista após salvar
             }} />
           </div>
         </div>
