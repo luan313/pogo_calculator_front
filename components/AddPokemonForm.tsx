@@ -37,7 +37,7 @@ export default function AddPokemonForm({ onSuccess }: { onSuccess: () => void })
         return;
       }
       try {
-        const res = await fetch(`${API_URL}/api/autocomplete?q=${nome}`);
+        const res = await fetch(`${API_URL}/autocomplete?q=${nome}`);
         if (res.ok) {
           const data = await res.json();
           setSuggestions(data);
@@ -76,7 +76,7 @@ export default function AddPokemonForm({ onSuccess }: { onSuccess: () => void })
     };
 
     try {
-      const res = await fetch(`${API_URL}/api/store_data`, {
+      const res = await fetch(`${API_URL}/store_data`, {
         method: 'POST', // Método obrigatório para evitar Erro 405
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
