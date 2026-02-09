@@ -4,10 +4,8 @@ import { useState, useEffect } from 'react';
 import { Shield, Sword, Zap, Plus, Loader2 } from 'lucide-react';
 import AddPokemonForm from '@/components/AddPokemonForm';
 
-// Tipagem para organização
 type League = 'great' | 'ultra' | 'master';
 
-// Dicionário de tradução e cores (para lidar com os tipos em inglês do backend)
 const typeConfigs: Record<string, { label: string; color: string }> = {
   fire: { label: 'Fogo', color: 'bg-orange-600' },
   water: { label: 'Água', color: 'bg-blue-600' },
@@ -35,12 +33,11 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Função para buscar os dados do backend
   const fetchAllTeams = async () => {
     setLoading(true);
     const api_url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     try {
-      const res = await fetch(`${api_url}/get_tier_list`);
+      const res = await fetch(`${api_url}/api/get_tier_list`);
       if (res.ok) {
         const data = await res.json();
         setAllData(data);
@@ -56,7 +53,7 @@ export default function Home() {
     fetchAllTeams();
   }, []);
 
-  // SEGURANÇA: Garante que currentTeams nunca seja null ou undefined
+  // GARANTIA: Se allData for null ou a liga não existir, usamos um objeto vazio
   const currentTeams = allData?.[selectedLeague] ?? {};
   const tiposDisponiveis = Object.keys(currentTeams).sort();
 
@@ -79,16 +76,14 @@ export default function Home() {
         </button>
       </div>
 
-      {/* SELETOR DE LIGAS (TABS) */}
+      {/* SELETOR DE LIGAS */}
       <div className="max-w-fit mx-auto bg-zinc-900 p-1.5 rounded-2xl flex gap-1 mb-12 border border-zinc-800">
         {(['great', 'ultra', 'master'] as const).map((league) => (
           <button
             key={league}
             onClick={() => setSelectedLeague(league)}
             className={`px-6 py-3 rounded-xl font-bold uppercase text-sm transition-all flex items-center gap-2 ${
-              selectedLeague === league 
-                ? 'bg-zinc-800 text-white shadow-inner' 
-                : 'text-zinc-500 hover:text-zinc-300'
+              selectedLeague === league ? 'bg-zinc-800 text-white shadow-inner' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             {league === 'great' && <Shield size={16} />}
@@ -99,7 +94,7 @@ export default function Home() {
         ))}
       </div>
 
-      {/* DASHBOARD PRINCIPAL */}
+      {/* LISTAGEM PRINCIPAL */}
       <div className="max-w-7xl mx-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -117,7 +112,8 @@ export default function Home() {
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {currentTeams[tipo].map((pokemon: any) => (
+                {/* O SEGREDO ESTÁ AQUI: O uso do ?. garante que se for undefined, o map não é chamado */}
+                {currentTeams[tipo]?.map((pokemon: any) => (
                   <div 
                     key={pokemon.id} 
                     className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl hover:border-blue-500/50 transition-colors group relative overflow-hidden"
@@ -148,13 +144,12 @@ export default function Home() {
           ))
         ) : (
           <div className="text-center py-20 bg-zinc-900/50 rounded-3xl border-2 border-dashed border-zinc-800">
-            <p className="text-zinc-500 font-bold">Nenhum Pokémon encontrado nesta liga.</p>
-            <p className="text-sm text-zinc-600">Clique em adicionar para começar seu inventário!</p>
+            <p className="text-zinc-500 font-bold">Nenhum Pokémon encontrado.</p>
           </div>
         )}
       </div>
 
-      {/* MODAL PARA ADICIONAR POKÉMON */}
+      {/* MODAL */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md relative">
