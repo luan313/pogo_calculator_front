@@ -24,7 +24,7 @@ export default function LoginPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.push('/'); // Ou '/dashboard', dependendo de onde está sua home
+        router.push('/dashboard'); // Ou '/dashboard', dependendo de onde está sua home
       }
     } catch (error: any) {
       alert(error.message);
