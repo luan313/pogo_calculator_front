@@ -147,7 +147,7 @@ export default function DashboardPage() {
                                 let s = "";
 
                                 // 1. Identificação de Formas Regionais/Especiais
-                                if (n.includes("alola")) s += ".fALOLAN";
+                                if (n.includes("alola")) s += ".fALOLA";
                                 if (n.includes("galar")) s += ".fGALARIAN";
                                 if (n.includes("hisui")) s += ".fHISUIAN";
                                 if (n.includes("paldea")) s += ".fPALDEA";
