@@ -63,7 +63,7 @@ export default function DashboardPage() {
       return { iv: 'rank_iv_ultra', rank: 'rank_liga_ultra' };
     }
     if (name.includes('master')) {
-      return { iv: 'rank_iv_master', rank: 'rank_liga_master' };
+      return { iv: 'rank_iv_mestra', rank: 'rank_liga_mestra' };
     }
     // Padrão para Great ou outras
     return { iv: 'rank_iv_grande', rank: 'rank_liga_grande' };
