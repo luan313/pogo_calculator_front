@@ -41,7 +41,7 @@ export default function Home() {
   // Função para sair do app
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   const fetchAllTeams = async () => {
@@ -49,7 +49,7 @@ export default function Home() {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
-      router.push('/login');
+      router.push('/auuth/login');
       return;
     }
 
@@ -67,7 +67,7 @@ export default function Home() {
         const data = await res.json();
         setAllData(data);
       } else if (res.status === 401) {
-        router.push('/login');
+        router.push('/auth/login');
       }
     } catch (err) {
       console.error("Erro ao buscar dados:", err);

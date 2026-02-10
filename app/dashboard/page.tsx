@@ -39,7 +39,7 @@ export default function DashboardPage() {
   // Função para deslogar
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   const fetchAllTeams = async () => {
@@ -49,7 +49,7 @@ export default function DashboardPage() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        router.push('/login');
+        router.push('/auth/login');
         return;
       }
 
