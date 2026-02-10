@@ -141,10 +141,23 @@ export default function DashboardPage() {
                         {/* IMAGEM COM DETECÇÃO SHADOW */}
                         {poke.dex && (
                           <img 
-                            src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable Assets/pm${poke.dex}${poke.nome.toLowerCase().includes('shadow') ? '.fSHADOW' : ''}.icon.png`}
+                            src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
+                              (() => {
+                                const n = poke.nome.toLowerCase();
+                                if (n.includes("shadow")) return ".fSHADOW";
+                                if (n.includes("alola"))  return ".fALOLA";
+                                if (n.includes("galar"))  return ".fGALAR";
+                                if (n.includes("hisui"))  return ".fHISUI";
+                                if (n.includes("pom-pom") || n.includes("pom pom")) return ".fPOM_POM";
+                                if (n.includes("baile"))  return ".fBAILE";
+                                if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) return ".fPAU";
+                                if (n.includes("sensu"))  return ".fSENSU";
+                                return "";
+                              })()
+                            }.icon.png`}
                             alt={poke.nome}
                             className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
-                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                            onError={(e) => (e.currentTarget.style.display = "none")}
                           />
                         )}
                         <div>
