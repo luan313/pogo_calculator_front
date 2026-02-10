@@ -8,6 +8,8 @@ import AddPokemonForm from '@/components/AddPokemonForm';
 
 // Mapeamento de cores por tipo
 const typeColors: Record<string, string> = {
+  overall: 'text-amber-400 border-amber-400/50 bg-amber-400/10 shadow-[0_0_15px_rgba(251,191,36,0.1)]',
+  best_team: 'text-cyan-400 border-cyan-400/50 bg-cyan-400/10 shadow-[0_0_15px_rgba(34,211,238,0.1)]',
   fire: 'text-red-500 border-red-500/20 bg-red-500/5',
   water: 'text-blue-500 border-blue-500/20 bg-blue-500/5',
   grass: 'text-green-500 border-green-500/20 bg-green-500/5',
