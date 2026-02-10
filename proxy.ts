@@ -12,7 +12,7 @@ export async function proxy(request: NextRequest) {
   // 2. Inicializamos o cliente do Supabase específico para Middleware
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {
         getAll() {
