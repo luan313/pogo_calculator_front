@@ -153,7 +153,7 @@ export default function DashboardPage() {
                                 if (n.includes("paldea")) s += ".fPALDEA";
 
                                 // 2. Oricorio e Formas de Dança (Ajuste Pom-Pom)
-                                if (n.includes("pom-pom") || n.includes("pom pom")) s += ".fPOMPOM";
+                                if (n.includes("pom-pom") || n.includes("pom_pom")) s += ".fPOMPOM";
                                 if (n.includes("baile")) s += ".fBAILE";
                                 if (n.includes("sensu")) s += ".fSENSU";
                                 if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
@@ -174,7 +174,7 @@ export default function DashboardPage() {
                             className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
                             onError={(e) => {
                               // Fallback: Pokébola oficial do Pokémon GO
-                              e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/Item_0001.png";
+                              e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png";
                             }}
                           />
                         )}
