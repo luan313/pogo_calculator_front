@@ -147,13 +147,13 @@ export default function DashboardPage() {
                                 let s = "";
 
                                 // 1. Identificação de Formas Regionais/Especiais
-                                if (n.includes("alola")) s += ".fALOLA";
-                                if (n.includes("galar")) s += ".fGALAR";
-                                if (n.includes("hisui")) s += ".fHISUI";
+                                if (n.includes("alola")) s += ".fALOLAN";
+                                if (n.includes("galar")) s += ".fGALARIAN";
+                                if (n.includes("hisui")) s += ".fHISUIAN";
                                 if (n.includes("paldea")) s += ".fPALDEA";
 
                                 // 2. Oricorio e Formas de Dança (Ajuste Pom-Pom)
-                                if (n.includes("pom-pom") || n.includes("pom pom")) s += ".fPOM_POM";
+                                if (n.includes("pom-pom") || n.includes("pom pom")) s += ".fPOMPOM";
                                 if (n.includes("baile")) s += ".fBAILE";
                                 if (n.includes("sensu")) s += ".fSENSU";
                                 if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
