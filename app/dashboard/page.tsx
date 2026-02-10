@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react'; // Adicionado useMemo
 import { supabase } from '@/lib/supabase';
-import { Plus, Loader2, LogOut, Sword, Trophy } from 'lucide-react';
+import { Plus, Loader2, LogOut, Sword, Trophy, BookmarkCheck } from 'lucide-react'; // Adicionado BookmarkCheck
 import { useRouter } from 'next/navigation';
 import AddPokemonForm from '@/components/AddPokemonForm';
 
-// Mapeamento de cores por tipo
 const typeColors: Record<string, string> = {
   overall: 'text-amber-400 border-amber-400/50 bg-amber-400/10 shadow-[0_0_15px_rgba(251,191,36,0.1)]',
   best_team: 'text-cyan-400 border-cyan-400/50 bg-cyan-400/10 shadow-[0_0_15px_rgba(34,211,238,0.1)]',
@@ -36,6 +35,27 @@ export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeLeague, setActiveLeague] = useState<string | null>(null);
   const router = useRouter();
+
+  // NOVO: Lógica para gerar a lista de pokémon únicos a serem guardados
+  const saveList = useMemo(() => {
+    if (!tierList) return [];
+    const uniqueMap = new Map();
+    
+    Object.values(tierList).forEach((leagueData: any) => {
+      Object.values(leagueData).forEach((pokemonArray: any) => {
+        if (Array.isArray(pokemonArray)) {
+          pokemonArray.forEach((poke) => {
+            // Mantém exemplares únicos baseados no ID (preservando IVs diferentes)
+            uniqueMap.set(poke.id, poke);
+          });
+        }
+      });
+    });
+
+    return Array.from(uniqueMap.values()).sort((a: any, b: any) => 
+      a.nome.localeCompare(b.nome)
+    );
+  }, [tierList]);
 
   const fetchMyPokemons = useCallback(async () => {
     setLoading(true);
@@ -96,7 +116,47 @@ export default function DashboardPage() {
                 {league} League
               </button>
             ))}
+            
+            {/* NOVO: Quarto botão para a lista consolidada */}
+            <button 
+              onClick={() => setActiveLeague(activeLeague === 'save_list' ? null : 'save_list')} 
+              className={`px-8 py-4 rounded-2xl font-black uppercase tracking-tighter transition-all border flex items-center gap-2 ${activeLeague === 'save_list' ? 'bg-amber-600 border-amber-500 text-white shadow-lg shadow-amber-600/20' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
+            >
+              <BookmarkCheck size={20} /> Quais pokémon guardar
+            </button>
           </div>
+
+          {/* NOVO: Seção consolidada "Quais pokémon guardar" */}
+          {activeLeague === 'save_list' && (
+            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-center gap-3">
+                <BookmarkCheck className="text-amber-500" size={24} />
+                <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">Pokémons Essenciais</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {saveList.map((poke: any) => (
+                  <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (
+                            <span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="bg-zinc-800/50 p-2 rounded-xl border border-zinc-800 text-center min-w-[60px]">
+                        <p className="text-[7px] font-black text-zinc-500 uppercase leading-none mb-1">IV</p>
+                        <p className="text-xs font-black text-white">{poke.ataque_iv}/{poke.defesa_iv}/{poke.hp_iv}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {Object.entries(tierList).map(([leagueName, types]: [string, any]) => (
             activeLeague === leagueName && (
@@ -111,18 +171,15 @@ export default function DashboardPage() {
                     const typeStyle = typeColors[typeName.toLowerCase()] || 'text-zinc-500 border-zinc-800 bg-zinc-900/50';
                     return Array.isArray(pokemons) && pokemons.length > 0 && (
                       <div key={typeName} className="space-y-4">
-                        {/* Título do Tipo com Cor Dinâmica */}
                         <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1 border rounded-full inline-block ${typeStyle}`}>
                           Tipo: {typeName}
                         </h3>
 
-                        {/* Grid Ajustado (Mais colunas para cards menores) */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                           {pokemons.map((poke: any) => (
                             <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-blue-500/30 transition-all group">
                               <div className="flex justify-between items-start mb-4">
                                 <div>
-                                  {/* Fonte reduzida no nome */}
                                   <h3 className="text-base font-bold uppercase group-hover:text-blue-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
                                   <div className="flex flex-wrap gap-1 mt-1.5">
                                     {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (
@@ -132,7 +189,6 @@ export default function DashboardPage() {
                                     ))}
                                   </div>
                                 </div>
-                                {/* IV Badge compacta */}
                                 <div className="bg-zinc-800/50 p-2 rounded-xl border border-zinc-800 text-center min-w-[60px]">
                                   <p className="text-[7px] font-black text-zinc-500 uppercase leading-none mb-1">IV</p>
                                   <p className="text-xs font-black text-white">{poke.ataque_iv}/{poke.defesa_iv}/{poke.hp_iv}</p>
