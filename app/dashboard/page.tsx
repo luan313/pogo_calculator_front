@@ -144,20 +144,38 @@ export default function DashboardPage() {
                             src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
                               (() => {
                                 const n = poke.nome.toLowerCase();
-                                if (n.includes("shadow")) return ".fSHADOW";
-                                if (n.includes("alola"))  return ".fALOLA";
-                                if (n.includes("galar"))  return ".fGALAR";
-                                if (n.includes("hisui"))  return ".fHISUI";
-                                if (n.includes("pom-pom") || n.includes("pom pom")) return ".fPOM_POM";
-                                if (n.includes("baile"))  return ".fBAILE";
-                                if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) return ".fPAU";
-                                if (n.includes("sensu"))  return ".fSENSU";
-                                return "";
+                                let s = "";
+
+                                // 1. Identificação de Formas Regionais/Especiais
+                                if (n.includes("alola")) s += ".fALOLA";
+                                if (n.includes("galar")) s += ".fGALAR";
+                                if (n.includes("hisui")) s += ".fHISUI";
+                                if (n.includes("paldea")) s += ".fPALDEA";
+
+                                // 2. Oricorio e Formas de Dança (Ajuste Pom-Pom)
+                                if (n.includes("pom-pom") || n.includes("pom pom")) s += ".fPOM_POM";
+                                if (n.includes("baile")) s += ".fBAILE";
+                                if (n.includes("sensu")) s += ".fSENSU";
+                                if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
+
+                                // 3. Casos Especiais: Florges e Flamigo
+                                // Florges NÃO tem arquivo base, precisa de uma cor (ex: .fWHITE)
+                                if (poke.dex === 671 && !s) s += ".fWHITE"; 
+                                // Flamigo às vezes é registrado como .fNORMAL
+                                if (poke.dex === 973 && !s) s += ""; // Se falhar, tente mudar para s += ".fNORMAL"
+
+                                // 4. Shadow (Sempre por último na string do arquivo)
+                                if (n.includes("shadow")) s += ".fSHADOW";
+
+                                return s;
                               })()
                             }.icon.png`}
                             alt={poke.nome}
                             className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
-                            onError={(e) => (e.currentTarget.style.display = "none")}
+                            onError={(e) => {
+                              // Fallback: Pokébola oficial do Pokémon GO
+                              e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/Item_0001.png";
+                            }}
                           />
                         )}
                         <div>
