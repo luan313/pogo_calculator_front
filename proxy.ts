@@ -1,21 +1,49 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+// proxy.ts
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+// No Next.js 16, a função DEVE se chamar 'proxy'
+export async function proxy(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          response = NextResponse.next({
+            request,
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
 
-  // Se o usuário tentar entrar no dashboard sem estar logado, manda pro login
-  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', req.url));
+  // Verifica a sessão
+  const { data: { session } } = await supabase.auth.getSession()
+
+  // Se tentar acessar dashboard sem login, redireciona
+  if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
-  return res;
+  return response
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'], // Protege a pasta dashboard e subpastas
-};
+  matcher: ['/dashboard/:path*'],
+}
