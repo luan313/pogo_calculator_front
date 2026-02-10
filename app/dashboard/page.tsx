@@ -195,13 +195,26 @@ export default function DashboardPage() {
                                 </div>
                               </div>
 
-                              <div className="bg-black/40 p-3 rounded-xl border border-zinc-800/50 text-center">
-                                <p className="text-[8px] font-bold text-zinc-600 uppercase mb-0.5">Rank</p>
-                                <p className="text-lg font-black text-blue-500">
-                                  #{leagueName === 'great' ? poke.rank_iv_grande : 
-                                    leagueName === 'ultra' ? poke.rank_iv_ultra : 
-                                    poke.rank_iv_mestra || '-'}
-                                </p>
+                             <div className="grid grid-cols-2 gap-2">
+                                {/* IV RANK */}
+                                <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
+                                  <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">IV Rank</p>
+                                  <p className="text-sm font-black text-blue-500">
+                                    #{leagueName === 'great' ? poke.rank_iv_grande : 
+                                      leagueName === 'ultra' ? poke.rank_iv_ultra : 
+                                      poke.rank_iv_mestra || '-'}
+                                  </p>
+                                </div>
+
+                                {/* LEAGUE RANK */}
+                                <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
+                                  <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">League Rank</p>
+                                  <p className="text-sm font-black text-amber-500">
+                                    #{leagueName === 'great' ? poke.rank_liga_grande : 
+                                      leagueName === 'ultra' ? poke.rank_liga_ultra : 
+                                      poke.rank_liga_mestra || '-'}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           ))}
