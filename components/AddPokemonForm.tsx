@@ -168,48 +168,59 @@ export default function AddPokemonForm({ onSuccess, onClose }: AddPokemonFormPro
             </button>
           </div>
 
-          {ivs.map((iv, index) => (
-            <div key={index} className="flex items-center gap-2 bg-zinc-800/50 p-3 rounded-2xl border border-zinc-800">
-              <input
-                type="number"
-                placeholder="ATK"
-                className="w-full bg-zinc-800 text-center rounded-lg py-2 text-sm font-bold border border-zinc-700"
-                value={iv.ataque_iv}
-                onChange={(e) => {
-                  const newIvs = [...ivs];
-                  newIvs[index].ataque_iv = parseInt(e.target.value) || 0;
-                  setIvs(newIvs);
-                }}
-              />
-              <input
-                type="number"
-                placeholder="DEF"
-                className="w-full bg-zinc-800 text-center rounded-lg py-2 text-sm font-bold border border-zinc-700"
-                value={iv.defesa_iv}
-                onChange={(e) => {
-                  const newIvs = [...ivs];
-                  newIvs[index].defesa_iv = parseInt(e.target.value) || 0;
-                  setIvs(newIvs);
-                }}
-              />
-              <input
-                type="number"
-                placeholder="HP"
-                className="w-full bg-zinc-800 text-center rounded-lg py-2 text-sm font-bold border border-zinc-700"
-                value={iv.hp_iv}
-                onChange={(e) => {
-                  const newIvs = [...ivs];
-                  newIvs[index].hp_iv = parseInt(e.target.value) || 0;
-                  setIvs(newIvs);
-                }}
-              />
-              {ivs.length > 1 && (
-                <button type="button" onClick={() => setIvs(ivs.filter((_, i) => i !== index))} className="text-red-500 p-2">
-                  <Trash2 size={18} />
-                </button>
-              )}
-            </div>
-          ))}
+          {ivs.map((iv, index) => {
+            // Função auxiliar para validar o valor entre 0 e 15
+            const handleIvChange = (field: string, value: string) => {
+              let val = parseInt(value);
+              
+              // Se não for um número (vazio), deixamos como 0
+              if (isNaN(val)) val = 0;
+              
+              // Trava lógica: Garante que o valor nunca seja menor que 0 ou maior que 15
+              const validatedValue = Math.max(0, Math.min(15, val));
+              
+              const newIvs = [...ivs];
+              newIvs[index] = { ...newIvs[index], [field]: validatedValue };
+              setIvs(newIvs);
+            };
+
+            return (
+              <div key={index} className="flex items-center gap-2 bg-zinc-800/50 p-3 rounded-2xl border border-zinc-800">
+                <input
+                  type="number"
+                  min="0"
+                  max="15"
+                  placeholder="ATK"
+                  className="w-full bg-zinc-800 text-center rounded-lg py-2 text-sm font-bold border border-zinc-700 outline-none focus:border-blue-500"
+                  value={iv.ataque_iv}
+                  onChange={(e) => handleIvChange('ataque_iv', e.target.value)}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="15"
+                  placeholder="DEF"
+                  className="w-full bg-zinc-800 text-center rounded-lg py-2 text-sm font-bold border border-zinc-700 outline-none focus:border-blue-500"
+                  value={iv.defesa_iv}
+                  onChange={(e) => handleIvChange('defesa_iv', e.target.value)}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="15"
+                  placeholder="HP"
+                  className="w-full bg-zinc-800 text-center rounded-lg py-2 text-sm font-bold border border-zinc-700 outline-none focus:border-blue-500"
+                  value={iv.hp_iv}
+                  onChange={(e) => handleIvChange('hp_iv', e.target.value)}
+                />
+                {ivs.length > 1 && (
+                  <button type="button" onClick={() => setIvs(ivs.filter((_, i) => i !== index))} className="text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-colors">
+                    <Trash2 size={18} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* BOTÕES DE AÇÃO */}
