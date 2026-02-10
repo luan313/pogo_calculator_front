@@ -37,7 +37,7 @@ export async function proxy(request: NextRequest) {
   // Se tentar acessar dashboard sem login, redireciona
   if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = '/auth/login'
     return NextResponse.redirect(url)
   }
 
@@ -45,5 +45,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  matcher: [
+    '/dashboard/:path*',
+    '/'
+  ],
 }

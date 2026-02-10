@@ -80,7 +80,7 @@ export default function Home() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        router.push('/login');
+        router.push('/auth/login');
       } else {
         fetchAllTeams();
       }
