@@ -53,7 +53,7 @@ export default function DashboardPage() {
     });
 
     return Array.from(uniqueMap.values()).sort((a: any, b: any) => 
-      a.nome.localeCompare(b.nome)
+      a.dex - b.dex
     );
   }, [tierList]);
 
