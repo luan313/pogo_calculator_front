@@ -137,19 +137,41 @@ export default function DashboardPage() {
                 {saveList.map((poke: any) => (
                   <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
                     <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (
-                            <span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">
-                              {t}
-                            </span>
-                          ))}
+                      <div className="flex gap-3">
+                        {/* IMAGEM COM DETECÇÃO SHADOW */}
+                        {poke.dex && (
+                          <img 
+                            src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable Assets/pm${poke.dex}${poke.nome.toLowerCase().includes('shadow') ? '.fSHADOW' : ''}.icon.png`}
+                            alt={poke.nome}
+                            className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
+                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                          />
+                        )}
+                        <div>
+                          <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (
+                              <span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">
+                                {t}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                       <div className="bg-zinc-800/50 p-2 rounded-xl border border-zinc-800 text-center min-w-[60px]">
                         <p className="text-[7px] font-black text-zinc-500 uppercase leading-none mb-1">IV</p>
                         <p className="text-xs font-black text-white">{poke.ataque_iv}/{poke.defesa_iv}/{poke.hp_iv}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
+                        <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">IV Rank</p>
+                        <p className="text-xs font-black text-blue-500">#{poke.rank_iv_grande || '-'}</p>
+                      </div>
+                      <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
+                        <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">League Rank</p>
+                        <p className="text-xs font-black text-amber-500">#{poke.rank_liga_grande || '-'}</p>
                       </div>
                     </div>
                   </div>
@@ -177,16 +199,27 @@ export default function DashboardPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                           {pokemons.map((poke: any) => (
-                            <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-blue-500/30 transition-all group">
+                            <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
                               <div className="flex justify-between items-start mb-4">
-                                <div>
-                                  <h3 className="text-base font-bold uppercase group-hover:text-blue-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
-                                  <div className="flex flex-wrap gap-1 mt-1.5">
-                                    {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (
-                                      <span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">
-                                        {t}
-                                      </span>
-                                    ))}
+                                <div className="flex gap-3">
+                                  {/* IMAGEM COM DETECÇÃO SHADOW */}
+                                  {poke.dex && (
+                                    <img 
+                                      src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable Assets/pm${poke.dex}${poke.nome.toLowerCase().includes('shadow') ? '.fSHADOW' : ''}.icon.png`}
+                                      alt={poke.nome}
+                                      className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
+                                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                                    />
+                                  )}
+                                  <div>
+                                    <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
+                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                      {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (
+                                        <span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">
+                                          {t}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="bg-zinc-800/50 p-2 rounded-xl border border-zinc-800 text-center min-w-[60px]">
@@ -195,25 +228,14 @@ export default function DashboardPage() {
                                 </div>
                               </div>
 
-                             <div className="grid grid-cols-2 gap-2">
-                                {/* IV RANK */}
+                              <div className="grid grid-cols-2 gap-2">
                                 <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
                                   <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">IV Rank</p>
-                                  <p className="text-sm font-black text-blue-500">
-                                    #{leagueName === 'great' ? poke.rank_iv_grande : 
-                                      leagueName === 'ultra' ? poke.rank_iv_ultra : 
-                                      poke.rank_iv_mestra || '-'}
-                                  </p>
+                                  <p className="text-xs font-black text-blue-500">#{poke.rank_iv_grande || '-'}</p>
                                 </div>
-
-                                {/* LEAGUE RANK */}
                                 <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
                                   <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">League Rank</p>
-                                  <p className="text-sm font-black text-amber-500">
-                                    #{leagueName === 'great' ? poke.rank_liga_grande : 
-                                      leagueName === 'ultra' ? poke.rank_liga_ultra : 
-                                      poke.rank_liga_mestra || '-'}
-                                  </p>
+                                  <p className="text-xs font-black text-amber-500">#{poke.rank_liga_grande || '-'}</p>
                                 </div>
                               </div>
                             </div>
