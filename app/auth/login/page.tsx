@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Zap, Loader2, LogIn } from 'lucide-react';
+import { Zap, Loader2, LogIn, UserPlus } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,13 +18,26 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            // Redireciona de volta para o dashboard após confirmar email
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          }
+        });
         if (error) throw error;
-        alert('Verifique seu e-mail para confirmar o cadastro!');
+        alert('Cadastro realizado! Verifique seu e-mail para confirmar.');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.push('/dashboard'); // Ou '/dashboard', dependendo de onde está sua home
+
+        // --- PONTO CRÍTICO ---
+        // 1. Vamos direto para o dashboard
+        router.push('/dashboard');
+        // 2. O refresh() força o Next.js a revalidar o Middleware (proxy.ts)
+        // garantindo que ele veja o novo cookie de sessão imediatamente.
+        router.refresh();
       }
     } catch (error: any) {
       alert(error.message);
@@ -35,40 +48,44 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl">
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl shadow-blue-900/10">
         
         {/* LOGO E TÍTULO */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="bg-blue-600 p-3 rounded-2xl mb-4 shadow-lg shadow-blue-600/20">
+        <div className="flex flex-col items-center mb-10">
+          <div className="bg-blue-600 p-4 rounded-3xl mb-4 shadow-xl shadow-blue-600/20 rotate-3">
             <Zap className="text-white fill-white" size={32} />
           </div>
-          <h1 className="text-2xl font-black uppercase tracking-tighter">
+          <h1 className="text-3xl font-black uppercase tracking-tighter italic text-white">
             PoGo Ranker
           </h1>
-          <p className="text-zinc-500 text-sm font-medium">
-            {isSignUp ? 'Crie sua conta competitiva' : 'Acesse seu inventário PvP'}
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">
+            {isSignUp ? 'New Account' : 'PvP Authenticator'}
           </p>
         </div>
 
         {/* FORMULÁRIO */}
         <form onSubmit={handleAuth} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold uppercase text-zinc-500 mb-1.5 ml-1">E-mail</label>
+            <label className="block text-[10px] font-black uppercase text-zinc-600 mb-2 ml-1 tracking-widest">
+              E-mail Address
+            </label>
             <input
               type="email"
               required
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
-              placeholder="exemplo@email.com"
+              className="w-full bg-zinc-800/50 border border-zinc-800 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 focus:bg-zinc-800 transition-all placeholder:text-zinc-700"
+              placeholder="seu@email.com"
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-zinc-500 mb-1.5 ml-1">Senha</label>
+            <label className="block text-[10px] font-black uppercase text-zinc-600 mb-2 ml-1 tracking-widest">
+              Password
+            </label>
             <input
               type="password"
               required
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full bg-zinc-800/50 border border-zinc-800 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 focus:bg-zinc-800 transition-all placeholder:text-zinc-700"
               placeholder="••••••••"
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -77,26 +94,30 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-600/10"
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg shadow-blue-600/20 mt-6"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={20} />
             ) : (
               <>
-                <LogIn size={20} />
-                {isSignUp ? 'CRIAR CONTA' : 'ENTRAR NO APP'}
+                {isSignUp ? <UserPlus size={20} /> : <LogIn size={20} />}
+                <span className="uppercase tracking-widest text-sm">
+                  {isSignUp ? 'Criar Treinador' : 'Acessar Arsenal'}
+                </span>
               </>
             )}
           </button>
         </form>
 
-        {/* TOGGLE LOGIN/SIGNUP */}
-        <div className="mt-6 text-center">
+        {/* TOGGLE */}
+        <div className="mt-8 text-center">
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-sm text-zinc-500 hover:text-blue-400 font-medium transition-colors"
+            className="text-[11px] text-zinc-600 hover:text-blue-400 font-bold uppercase tracking-tighter transition-colors"
           >
-            {isSignUp ? 'Já tem uma conta? Entre aqui' : 'Não tem conta? Cadastre-se grátis'}
+            {isSignUp 
+              ? 'Já possui uma conta estratégica? Entrar' 
+              : 'Novo por aqui? Cadastre-se na liga'}
           </button>
         </div>
       </div>
