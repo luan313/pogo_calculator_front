@@ -2,29 +2,25 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Plus, Loader2, RefreshCw, LogOut, Trash2 } from 'lucide-react';
+import { Plus, Loader2, RefreshCw, LogOut, Sword } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import AddPokemonForm from '@/components/AddPokemonForm'; // Ajuste o caminho conforme seu projeto
+import AddPokemonForm from '@/components/AddPokemonForm';
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const [pokemons, setPokemons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
 
-  // 1. FUNÇÃO PARA BUSCAR POKÉMON NO BACKEND
+  // 1. Função para buscar os dados no seu FastAPI
   const fetchMyPokemons = useCallback(async () => {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
-        router.push('/auth/login');
-        return;
-      }
+      if (!session) return; // O Middleware já trata isso, mas é uma boa prática
 
       const api_url = process.env.NEXT_PUBLIC_API_URL;
-      // IMPORTANTE: Use exatamente o nome do endpoint do seu Python (get_tier_list)
       const res = await fetch(`${api_url}/get_tier_list`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -36,113 +32,114 @@ export default function Dashboard() {
         setPokemons(data);
       }
     } catch (err) {
-      console.error("Erro ao carregar lista:", err);
+      console.error("Erro ao carregar arsenal:", err);
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
-  // Busca inicial ao carregar a página
   useEffect(() => {
     fetchMyPokemons();
   }, [fetchMyPokemons]);
 
-  // 2. LOGOUT
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/auth/login');
+    router.refresh(); // O Middleware vai detectar a saída e te mandar pro login
   };
 
   return (
-    <main className="min-h-screen bg-black text-white p-6">
-      {/* HEADER */}
-      <div className="max-w-6xl mx-auto flex justify-between items-center mb-12">
+    <main className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
+      {/* HEADER DO DASHBOARD */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
         <div>
-          <h1 className="text-4xl font-black uppercase tracking-tighter italic">Meu Arsenal</h1>
-          <p className="text-zinc-500 text-sm">Gerencie seus Pokémon e ranks de IV</p>
+          <h1 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-2">
+            <Sword className="text-blue-500" /> Meu Arsenal
+          </h1>
+          <p className="text-zinc-500 text-sm font-medium">Sua coleção estratégica para a GO Battle League</p>
         </div>
-        
-        <div className="flex gap-3">
+
+        <div className="flex gap-2 w-full md:w-auto">
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20"
+            className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-600/20"
           >
-            <Plus size={20} /> NOVO POKÉMON
+            <Plus size={20} /> ADICIONAR
           </button>
-          
           <button 
             onClick={handleLogout}
-            className="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 p-3 rounded-2xl transition-colors"
+            className="bg-zinc-900 hover:bg-zinc-800 text-zinc-500 p-3 rounded-2xl transition-colors border border-zinc-800"
           >
             <LogOut size={20} />
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* LISTA DE POKÉMON */}
-      <div className="max-w-6xl mx-auto">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-zinc-600">
-            <Loader2 className="animate-spin mb-4" size={40} />
-            <p className="font-bold uppercase tracking-widest text-xs">Sincronizando com o Banco...</p>
-          </div>
-        ) : pokemons.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pokemons.map((poke: any) => (
-              <div key={poke.id} className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-3xl hover:border-zinc-700 transition-all">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold uppercase">{poke.nome}</h3>
-                    <div className="flex gap-1 mt-1">
-                      {poke.tipo.map((t: string) => (
-                        <span key={t} className="text-[9px] font-black uppercase bg-zinc-800 px-2 py-0.5 rounded text-zinc-400 border border-zinc-700">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="block text-[10px] text-zinc-500 font-bold uppercase">IV Total</span>
-                    <span className="text-lg font-black text-blue-500">{poke.ataque_iv}/{poke.defesa_iv}/{poke.hp_iv}</span>
+      {/* ÁREA DE CONTEÚDO */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24 text-zinc-700">
+          <Loader2 className="animate-spin mb-4" size={48} />
+          <p className="font-black uppercase text-xs tracking-[0.2em]">Sincronizando Dados...</p>
+        </div>
+      ) : pokemons.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {pokemons.map((poke: any) => (
+            <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-[2rem] hover:border-blue-500/30 transition-all group">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-xl font-bold uppercase group-hover:text-blue-400 transition-colors">{poke.nome}</h3>
+                  <div className="flex gap-1.5 mt-2">
+                    {poke.tipo.map((t: string) => (
+                      <span key={t} className="text-[9px] font-black uppercase bg-zinc-800 px-2 py-1 rounded-md text-zinc-400 border border-zinc-700">
+                        {t}
+                      </span>
+                    ))}
                   </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2 py-3 border-t border-zinc-800/50">
-                   <div className="text-center">
-                     <p className="text-[8px] font-bold text-zinc-600 uppercase">Great</p>
-                     <p className="text-sm font-black">#{poke.rank_iv_grande || '-'}</p>
-                   </div>
-                   <div className="text-center border-x border-zinc-800/50">
-                     <p className="text-[8px] font-bold text-zinc-600 uppercase">Ultra</p>
-                     <p className="text-sm font-black">#{poke.rank_iv_ultra || '-'}</p>
-                   </div>
-                   <div className="text-center">
-                     <p className="text-[8px] font-bold text-zinc-600 uppercase">Master</p>
-                     <p className="text-sm font-black">#{poke.rank_iv_mestra || '-'}</p>
-                   </div>
+                <div className="bg-zinc-800/50 p-3 rounded-2xl border border-zinc-800 text-center min-w-[70px]">
+                  <p className="text-[8px] font-black text-zinc-500 uppercase leading-none mb-1">IV Total</p>
+                  <p className="text-sm font-black text-white">{poke.ataque_iv}/{poke.defesa_iv}/{poke.hp_iv}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 bg-zinc-900/20 border-2 border-dashed border-zinc-900 rounded-3xl">
-            <p className="text-zinc-600 font-medium">Sua tier list está vazia.</p>
-            <button onClick={() => setIsModalOpen(true)} className="text-blue-500 font-bold text-sm mt-2 hover:underline">
-              Comece adicionando seu primeiro Pokémon
-            </button>
-          </div>
-        )}
-      </div>
+
+              {/* RANKS DE LIGA */}
+              <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-800/50">
+                <div className="text-center">
+                  <p className="text-[9px] font-bold text-zinc-600 uppercase mb-1">Great</p>
+                  <p className="font-black text-blue-500">#{poke.rank_iv_grande || '-'}</p>
+                </div>
+                <div className="text-center border-x border-zinc-800/50 px-2">
+                  <p className="text-[9px] font-bold text-zinc-600 uppercase mb-1">Ultra</p>
+                  <p className="font-black text-purple-500">#{poke.rank_iv_ultra || '-'}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] font-bold text-zinc-600 uppercase mb-1">Master</p>
+                  <p className="font-black text-orange-500">#{poke.rank_iv_mestra || '-'}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-32 bg-zinc-900/20 border-2 border-dashed border-zinc-900 rounded-[3rem]">
+          <p className="text-zinc-500 font-bold uppercase text-sm tracking-widest">Seu arsenal está vazio</p>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="mt-4 text-blue-500 font-black text-xs uppercase hover:tracking-widest transition-all"
+          >
+            + Clique para começar
+          </button>
+        </div>
+      )}
 
       {/* MODAL DE ADIÇÃO */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-lg">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-lg animate-in fade-in zoom-in duration-200">
             <AddPokemonForm 
               onClose={() => setIsModalOpen(false)} 
               onSuccess={() => {
                 setIsModalOpen(false);
-                fetchMyPokemons(); // Atualiza a lista automaticamente após salvar
+                fetchMyPokemons(); // Atualiza a lista após salvar!
               }}
             />
           </div>
