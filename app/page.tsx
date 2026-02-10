@@ -49,7 +49,7 @@ export default function Home() {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
-      router.push('/auuth/login');
+      router.push('/auth/login');
       return;
     }
 
