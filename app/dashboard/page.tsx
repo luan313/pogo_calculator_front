@@ -57,6 +57,18 @@ export default function DashboardPage() {
     );
   }, [tierList]);
 
+  const getRankKeys = (leagueName: string) => {
+    const name = leagueName.toLowerCase();
+    if (name.includes('ultra')) {
+      return { iv: 'rank_iv_ultra', rank: 'rank_liga_ultra' };
+    }
+    if (name.includes('master')) {
+      return { iv: 'rank_iv_master', rank: 'rank_liga_master' };
+    }
+    // Padrão para Great ou outras
+    return { iv: 'rank_iv_grande', rank: 'rank_liga_grande' };
+  };
+
   const fetchMyPokemons = useCallback(async () => {
     setLoading(true);
     try {
@@ -211,8 +223,12 @@ export default function DashboardPage() {
             </section>
           )}
 
-          {Object.entries(tierList).map(([leagueName, types]: [string, any]) => (
-            activeLeague === leagueName && (
+          {Object.entries(tierList).map(([leagueName, types]: [string, any]) => {
+            // 1. Determina dinamicamente quais campos ler (grande, ultra ou master)
+            const { iv, rank } = getRankKeys(leagueName);
+
+            // 2. Adicionado 'return' explícito porque agora temos lógica antes do JSX
+            return activeLeague === leagueName && (
               <section key={leagueName} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center gap-3">
                   <Trophy className="text-blue-500" size={24} />
@@ -233,42 +249,30 @@ export default function DashboardPage() {
                             <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
                               <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-3">
-                                  {/* IMAGEM COM DETECÇÃO SHADOW */}
+                                  {/* INSERT IMAGES */}
                                   {poke.dex && (
                                     <img 
                                       src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
                                         (() => {
                                           const n = poke.nome.toLowerCase();
                                           let s = "";
-
-                                          // 1. Identificação de Formas Regionais/Especiais
                                           if (n.includes("alola")) s += ".fALOLA";
                                           if (n.includes("galar")) s += ".fGALARIAN";
                                           if (n.includes("hisui")) s += ".fHISUIAN";
                                           if (n.includes("paldea")) s += ".fPALDEA";
-
-                                          // 2. Oricorio e Formas de Dança (Ajuste Pom-Pom)
                                           if (n.includes("pom-pom") || n.includes("pom_pom")) s += ".fPOMPOM";
                                           if (n.includes("baile")) s += ".fBAILE";
                                           if (n.includes("sensu")) s += ".fSENSU";
                                           if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
-
-                                          // 3. Casos Especiais: Florges e Flamigo
-                                          // Florges NÃO tem arquivo base, precisa de uma cor (ex: .fWHITE)
                                           if (poke.dex === 671 && !s) s += ".fWHITE"; 
-                                          // Flamigo às vezes é registrado como .fNORMAL
-                                          if (poke.dex === 973 && !s) s += ""; // Se falhar, tente mudar para s += ".fNORMAL"
-
-                                          // 4. Shadow (Sempre por último na string do arquivo)
+                                          if (poke.dex === 973 && !s) s += ""; 
                                           if (n.includes("shadow")) s += ".fSHADOW";
-
                                           return s;
                                         })()
                                       }.icon.png`}
                                       alt={poke.nome}
                                       className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
                                       onError={(e) => {
-                                        // Fallback: Pokébola oficial do Pokémon GO
                                         e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png";
                                       }}
                                     />
@@ -293,11 +297,13 @@ export default function DashboardPage() {
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
                                   <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">IV Rank</p>
-                                  <p className="text-xs font-black text-blue-500">#{poke.rank_iv_grande || '-'}</p>
+                                  {/* 3. AQUI ESTÁ A CORREÇÃO: Usamos a variável [iv] em vez de fixo "grande" */}
+                                  <p className="text-xs font-black text-blue-500">#{poke[iv] || '-'}</p>
                                 </div>
                                 <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
                                   <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">League Rank</p>
-                                  <p className="text-xs font-black text-amber-500">#{poke.rank_liga_grande || '-'}</p>
+                                  {/* 3. AQUI ESTÁ A CORREÇÃO: Usamos a variável [rank] em vez de fixo "grande" */}
+                                  <p className="text-xs font-black text-amber-500">#{poke[rank] || '-'}</p>
                                 </div>
                               </div>
                             </div>
@@ -308,8 +314,8 @@ export default function DashboardPage() {
                   })}
                 </div>
               </section>
-            )
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-32 bg-zinc-900/20 border-2 border-dashed border-zinc-900 rounded-[3rem]">
