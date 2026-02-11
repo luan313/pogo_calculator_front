@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react'; // Adicionado useMemo
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Plus, Loader2, LogOut, Sword, Trophy, BookmarkCheck } from 'lucide-react'; // Adicionado BookmarkCheck
+import { Plus, Loader2, LogOut, Sword, Trophy, BookmarkCheck, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import AddPokemonForm from '@/components/AddPokemonForm';
 
@@ -31,12 +31,14 @@ const typeColors: Record<string, string> = {
 
 export default function DashboardPage() {
   const [tierList, setTierList] = useState<any>(null);
+  const [metaList, setMetaList] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeLeague, setActiveLeague] = useState<string | null>(null);
+  const [activeMetaLeague, setActiveMetaLeague] = useState<string>('great');
   const router = useRouter();
 
-  // NOVO: Lógica para gerar a lista de pokémon únicos a serem guardados
+  // Lista de guardar: Ordenada por número da Pokedex (dex)
   const saveList = useMemo(() => {
     if (!tierList) return [];
     const uniqueMap = new Map();
@@ -45,7 +47,6 @@ export default function DashboardPage() {
       Object.values(leagueData).forEach((pokemonArray: any) => {
         if (Array.isArray(pokemonArray)) {
           pokemonArray.forEach((poke) => {
-            // Mantém exemplares únicos baseados no ID (preservando IVs diferentes)
             uniqueMap.set(poke.id, poke);
           });
         }
@@ -57,6 +58,7 @@ export default function DashboardPage() {
     );
   }, [tierList]);
 
+  // Auxiliar para pegar as chaves corretas do JSON baseadas na liga
   const getRankKeys = (leagueName: string) => {
     const name = leagueName.toLowerCase();
     if (name.includes('ultra')) {
@@ -65,9 +67,25 @@ export default function DashboardPage() {
     if (name.includes('master')) {
       return { iv: 'rank_iv_mestra', rank: 'rank_liga_mestra' };
     }
-    // Padrão para Great ou outras
     return { iv: 'rank_iv_grande', rank: 'rank_liga_grande' };
   };
+
+  const fetchMeta = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const api_url = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${api_url}/get_meta`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMetaList(data);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar meta:", err);
+    }
+  }, []);
 
   const fetchMyPokemons = useCallback(async () => {
     setLoading(true);
@@ -89,7 +107,10 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => { fetchMyPokemons(); }, [fetchMyPokemons]);
+  useEffect(() => {
+    fetchMyPokemons();
+    fetchMeta();
+  }, [fetchMyPokemons, fetchMeta]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -122,23 +143,34 @@ export default function DashboardPage() {
         </div>
       ) : tierList ? (
         <div className="space-y-16">
+          
+          {/* --- NAVEGAÇÃO DE ABAS --- */}
           <div className="flex flex-wrap gap-3 mb-12">
+            {/* Ligas do Usuário */}
             {Object.keys(tierList).map((league) => (
               <button key={league} onClick={() => setActiveLeague(activeLeague === league ? null : league)} className={`px-8 py-4 rounded-2xl font-black uppercase tracking-tighter transition-all border ${activeLeague === league ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}>
                 {league} League
               </button>
             ))}
             
-            {/* NOVO: Quarto botão para a lista consolidada */}
+            {/* Botão Salvar */}
             <button 
               onClick={() => setActiveLeague(activeLeague === 'save_list' ? null : 'save_list')} 
               className={`px-8 py-4 rounded-2xl font-black uppercase tracking-tighter transition-all border flex items-center gap-2 ${activeLeague === 'save_list' ? 'bg-amber-600 border-amber-500 text-white shadow-lg shadow-amber-600/20' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
             >
               <BookmarkCheck size={20} /> Quais pokémon guardar
             </button>
+
+            {/* Botão Meta Global */}
+            <button 
+              onClick={() => setActiveLeague(activeLeague === 'meta' ? null : 'meta')} 
+              className={`px-8 py-4 rounded-2xl font-black uppercase tracking-tighter transition-all border flex items-center gap-2 ${activeLeague === 'meta' ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-600/20' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
+            >
+              <Globe size={20} /> Meta Global
+            </button>
           </div>
 
-          {/* NOVO: Seção consolidada "Quais pokémon guardar" */}
+          {/* --- SEÇÃO: QUAIS POKÉMON GUARDAR --- */}
           {activeLeague === 'save_list' && (
             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex items-center gap-3">
@@ -150,53 +182,35 @@ export default function DashboardPage() {
                   <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex gap-3">
-                        {/* IMAGEM COM DETECÇÃO SHADOW */}
                         {poke.dex && (
                           <img 
                             src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
                               (() => {
                                 const n = poke.nome.toLowerCase();
                                 let s = "";
-
-                                // 1. Identificação de Formas Regionais/Especiais
                                 if (n.includes("alola")) s += ".fALOLA";
                                 if (n.includes("galar")) s += ".fGALARIAN";
                                 if (n.includes("hisui")) s += ".fHISUIAN";
                                 if (n.includes("paldea")) s += ".fPALDEA";
-
-                                // 2. Oricorio e Formas de Dança (Ajuste Pom-Pom)
                                 if (n.includes("pom-pom") || n.includes("pom_pom")) s += ".fPOMPOM";
                                 if (n.includes("baile")) s += ".fBAILE";
                                 if (n.includes("sensu")) s += ".fSENSU";
                                 if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
-
-                                // 3. Casos Especiais: Florges e Flamigo
-                                // Florges NÃO tem arquivo base, precisa de uma cor (ex: .fWHITE)
                                 if (poke.dex === 671 && !s) s += ".fWHITE"; 
-                                // Flamigo às vezes é registrado como .fNORMAL
-                                if (poke.dex === 973 && !s) s += ""; // Se falhar, tente mudar para s += ".fNORMAL"
-
-                                // 4. Shadow (Sempre por último na string do arquivo)
                                 if (n.includes("shadow")) s += ".fSHADOW";
-
                                 return s;
                               })()
                             }.icon.png`}
                             alt={poke.nome}
                             className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
-                            onError={(e) => {
-                              // Fallback: Pokébola oficial do Pokémon GO
-                              e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png";
-                            }}
+                            onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }}
                           />
                         )}
                         <div>
                           <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (
-                              <span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">
-                                {t}
-                              </span>
+                              <span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>
                             ))}
                           </div>
                         </div>
@@ -223,11 +237,100 @@ export default function DashboardPage() {
             </section>
           )}
 
-          {Object.entries(tierList).map(([leagueName, types]: [string, any]) => {
-            // 1. Determina dinamicamente quais campos ler (grande, ultra ou master)
-            const { iv, rank } = getRankKeys(leagueName);
+          {/* --- SEÇÃO: META GLOBAL --- */}
+          {activeLeague === 'meta' && metaList && (
+            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex flex-col gap-6">
+                <div className="flex items-center gap-3">
+                  <Globe className="text-purple-500" size={24} />
+                  <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">Meta do Jogo</h2>
+                </div>
 
-            // 2. Adicionado 'return' explícito porque agora temos lógica antes do JSX
+                {/* Sub-menu das Ligas do Meta */}
+                <div className="flex gap-2">
+                  {['great', 'ultra', 'master'].map((league) => (
+                    <button
+                      key={league}
+                      onClick={() => setActiveMetaLeague(league)}
+                      className={`px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider border transition-all ${
+                        activeMetaLeague === league 
+                          ? 'bg-purple-600/20 border-purple-500 text-purple-400' 
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-600 hover:text-zinc-400'
+                      }`}
+                    >
+                      {league} League
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-10">
+                {metaList[activeMetaLeague] && Object.entries(metaList[activeMetaLeague]).map(([typeName, pokemons]: [string, any]) => {
+                  const typeStyle = typeColors[typeName.toLowerCase()] || 'text-zinc-500 border-zinc-800 bg-zinc-900/50';
+                  
+                  return Array.isArray(pokemons) && pokemons.length > 0 && (
+                    <div key={typeName} className="space-y-4">
+                      <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1 border rounded-full inline-block ${typeStyle}`}>
+                        Tipo: {typeName}
+                      </h3>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        {pokemons.map((poke: any) => (
+                          <div key={`${typeName}-${poke.nome}`} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-purple-500/30 transition-all group">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex gap-3 items-center">
+                                {poke.dex && (
+                                  <img 
+                                    src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
+                                      (() => {
+                                        const n = poke.nome.toLowerCase();
+                                        let s = "";
+                                        if (n.includes("alola")) s += ".fALOLA";
+                                        if (n.includes("galar")) s += ".fGALARIAN";
+                                        if (n.includes("hisui")) s += ".fHISUIAN";
+                                        if (n.includes("paldea")) s += ".fPALDEA";
+                                        if (n.includes("pom-pom") || n.includes("pom_pom")) s += ".fPOMPOM";
+                                        if (n.includes("baile")) s += ".fBAILE";
+                                        if (n.includes("sensu")) s += ".fSENSU";
+                                        if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
+                                        if (poke.dex === 671 && !s) s += ".fWHITE"; 
+                                        if (poke.dex === 973 && !s) s += ""; 
+                                        if (n.includes("shadow")) s += ".fSHADOW";
+                                        return s;
+                                      })()
+                                    }.icon.png`}
+                                    alt={poke.nome}
+                                    className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
+                                    onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }}
+                                  />
+                                )}
+                                <div>
+                                  <h3 className="text-base font-bold uppercase group-hover:text-purple-400 transition-colors truncate max-w-[140px]">{poke.nome}</h3>
+                                  <div className="flex flex-wrap gap-1 mt-1.5">
+                                    {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (
+                                      <span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-black/40 p-3 rounded-xl border border-zinc-800/50 flex justify-between items-center">
+                              <span className="text-[10px] font-bold text-zinc-500 uppercase">Rank Global</span>
+                              <span className="text-sm font-black text-purple-400">#{poke.rank_liga}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* --- SEÇÃO: LIGAS DO USUÁRIO (Arsenal) --- */}
+          {Object.entries(tierList).map(([leagueName, types]: [string, any]) => {
+            const { iv, rank } = getRankKeys(leagueName);
             return activeLeague === leagueName && (
               <section key={leagueName} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center gap-3">
@@ -249,7 +352,6 @@ export default function DashboardPage() {
                             <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
                               <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-3">
-                                  {/* INSERT IMAGES */}
                                   {poke.dex && (
                                     <img 
                                       src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
@@ -265,25 +367,20 @@ export default function DashboardPage() {
                                           if (n.includes("sensu")) s += ".fSENSU";
                                           if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
                                           if (poke.dex === 671 && !s) s += ".fWHITE"; 
-                                          if (poke.dex === 973 && !s) s += ""; 
                                           if (n.includes("shadow")) s += ".fSHADOW";
                                           return s;
                                         })()
                                       }.icon.png`}
                                       alt={poke.nome}
                                       className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
-                                      onError={(e) => {
-                                        e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png";
-                                      }}
+                                      onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }}
                                     />
                                   )}
                                   <div>
                                     <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
                                     <div className="flex flex-wrap gap-1 mt-1.5">
                                       {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (
-                                        <span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">
-                                          {t}
-                                        </span>
+                                        <span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>
                                       ))}
                                     </div>
                                   </div>
@@ -297,12 +394,10 @@ export default function DashboardPage() {
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
                                   <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">IV Rank</p>
-                                  {/* 3. AQUI ESTÁ A CORREÇÃO: Usamos a variável [iv] em vez de fixo "grande" */}
                                   <p className="text-xs font-black text-blue-500">#{poke[iv] || '-'}</p>
                                 </div>
                                 <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
                                   <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">League Rank</p>
-                                  {/* 3. AQUI ESTÁ A CORREÇÃO: Usamos a variável [rank] em vez de fixo "grande" */}
                                   <p className="text-xs font-black text-amber-500">#{poke[rank] || '-'}</p>
                                 </div>
                               </div>
