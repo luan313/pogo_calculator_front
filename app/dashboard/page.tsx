@@ -44,16 +44,22 @@ export default function DashboardPage() {
   const saveList = useMemo(() => {
     if (!tierList) return [];
     const uniqueMap = new Map();
+    
     Object.values(tierList).forEach((leagueData: any) => {
       Object.values(leagueData).forEach((pokemonArray: any) => {
         if (Array.isArray(pokemonArray)) {
           pokemonArray.forEach((poke) => {
-            uniqueMap.set(poke.id, poke);
+            const uniqueKey = `${poke.nome}-${poke.ataque_iv}-${poke.defesa_iv}-${poke.hp_iv}`;
+            
+            uniqueMap.set(uniqueKey, poke);
           });
         }
       });
     });
-    return Array.from(uniqueMap.values()).sort((a: any, b: any) => a.dex - b.dex);
+
+    return Array.from(uniqueMap.values()).sort((a: any, b: any) => 
+      a.dex - b.dex
+    );
   }, [tierList]);
 
   // NOVO: Cria um conjunto (Set) com os nomes dos pokémons que o usuário já possui
