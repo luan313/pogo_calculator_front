@@ -6,6 +6,7 @@ import { Plus, Loader2, LogOut, Sword, Trophy, BookmarkCheck, Globe, Sparkles, L
 import { useRouter } from 'next/navigation';
 import AddPokemonForm from '@/components/AddPokemonForm';
 
+// ... (const typeColors permanece igual) ...
 const typeColors: Record<string, string> = {
   overall: 'text-amber-400 border-amber-400/50 bg-amber-400/10 shadow-[0_0_15px_rgba(251,191,36,0.1)]',
   best_team: 'text-cyan-400 border-cyan-400/50 bg-cyan-400/10 shadow-[0_0_15px_rgba(34,211,238,0.1)]',
@@ -30,6 +31,7 @@ const typeColors: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  // ... (States e Hooks permanecem iguais) ...
   const [tierList, setTierList] = useState<any>(null);
   const [metaList, setMetaList] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -39,11 +41,9 @@ export default function DashboardPage() {
   const [includeSpecials, setIncludeSpecials] = useState(false);
   const router = useRouter();
 
-  // Lista de guardar corrigida (Chave Composta)
   const saveList = useMemo(() => {
     if (!tierList) return [];
     const uniqueMap = new Map();
-    
     Object.values(tierList).forEach((leagueData: any) => {
       Object.values(leagueData).forEach((pokemonArray: any) => {
         if (Array.isArray(pokemonArray)) {
@@ -54,17 +54,12 @@ export default function DashboardPage() {
         }
       });
     });
-
-    return Array.from(uniqueMap.values()).sort((a: any, b: any) => 
-      a.dex - b.dex
-    );
+    return Array.from(uniqueMap.values()).sort((a: any, b: any) => a.dex - b.dex);
   }, [tierList]);
 
-  // Lista organizada para Todos do Meta
   const sortedMetaList = useMemo(() => {
     if (!metaList) return {};
     const result: Record<string, any[]> = {};
-    
     ['great', 'ultra', 'master'].forEach(league => {
       const uniqueMap = new Map();
       if (metaList[league]) {
@@ -130,9 +125,17 @@ export default function DashboardPage() {
   useEffect(() => { fetchMyPokemons(); fetchMeta(); }, [fetchMyPokemons, fetchMeta]);
   const handleLogout = async () => { await supabase.auth.signOut(); router.refresh(); };
 
+  // MUDANÇA AQUI: Normalização do nome para a String de Consulta
   const copySearchString = (pokemons: any[]) => {
     if (!pokemons || pokemons.length === 0) return;
-    const uniqueNames = Array.from(new Set(pokemons.map(p => p.nome))).join(',');
+    
+    // 1. Pega os nomes
+    // 2. Remove tudo do primeiro parêntese para frente (incluindo o parêntese) e espaços extras
+    // 3. Remove duplicatas e junta com vírgula
+    const uniqueNames = Array.from(new Set(
+      pokemons.map(p => p.nome.split('(')[0].trim())
+    )).join(',');
+
     navigator.clipboard.writeText(uniqueNames).then(() => {
       alert(`String copiada para a área de transferência! (${pokemons.length} Pokémons)`);
     }).catch(err => {
@@ -142,6 +145,7 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto bg-black text-white">
+      {/* ... (Header mantido igual) ... */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10 border-b border-zinc-900 pb-8">
         <div>
           <h1 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-2">
@@ -174,41 +178,34 @@ export default function DashboardPage() {
 
           {activeLeague === 'save_list' && (
              <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {/* ... (Código da seção save_list mantido idêntico) ... */}
                 <div className="flex items-center gap-3">
                   <BookmarkCheck className="text-amber-500" size={24} />
                   <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">Pokémons Essenciais</h2>
                 </div>
-                
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {saveList.map((poke: any) => (
                     <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex gap-3">
-                          {poke.dex && (
-                          <img 
-                            src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
-                              (() => {
-                                const n = poke.nome.toLowerCase();
-                                let s = "";
-                                if (n.includes("alola")) s += ".fALOLA";
-                                if (n.includes("galar")) s += ".fGALARIAN";
-                                if (n.includes("hisui")) s += ".fHISUIAN";
-                                if (n.includes("paldea")) s += ".fPALDEA";
-                                if (n.includes("pom-pom") || n.includes("pom_pom")) s += ".fPOMPOM";
-                                if (n.includes("baile")) s += ".fBAILE";
-                                if (n.includes("sensu")) s += ".fSENSU";
-                                if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
-                                if (poke.dex === 671 && !s) s += ".fWHITE"; 
-                                if (n.includes("shadow")) s += ".fSHADOW";
-                                return s;
-                              })()
-                            }.icon.png`}
-                            alt={poke.nome}
-                            className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
-                            onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }}
-                          />
-                        )}
-                        <div>
+                          {poke.dex && <img src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${(() => { 
+                            // NORMALIZAÇÃO PARA IMAGEM (Mantida para não quebrar assets)
+                            const n = poke.nome.toLowerCase().replace(/[^a-z0-9]/g, ''); 
+                            let s = ""; 
+                            if (n.includes("alola")) s += ".fALOLA"; 
+                            if (n.includes("galar")) s += ".fGALARIAN"; 
+                            if (n.includes("hisui")) s += ".fHISUIAN"; 
+                            if (n.includes("paldea")) s += ".fPALDEA"; 
+                            if (n.includes("pompom")) s += ".fPOMPOM"; 
+                            if (n.includes("baile")) s += ".fBAILE"; 
+                            if (n.includes("sensu")) s += ".fSENSU"; 
+                            if (n.includes("pau")) s += ".fPAU"; 
+                            if (poke.dex === 671 && !s) s += ".fWHITE"; 
+                            if (poke.dex === 973 && !s) s += ""; 
+                            if (n.includes("shadow")) s += ".fSHADOW"; 
+                            return s; 
+                          })()}.icon.png`} alt={poke.nome} className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]" onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }} />}
+                          <div>
                             <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
                             <div className="flex flex-wrap gap-1 mt-1.5">{Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}</div>
                           </div>
@@ -228,6 +225,8 @@ export default function DashboardPage() {
              </section>
           )}
 
+          {/* ... (Resto do código mantido igual para 'meta_all' e 'meta', a função copySearchString já foi atualizada acima e será usada pelos botões) ... */}
+          
           {activeLeague === 'meta_all' && sortedMetaList && (
             <section className="space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-300">
               {['great', 'ultra', 'master'].map((league) => (
@@ -237,53 +236,26 @@ export default function DashboardPage() {
                       <Globe className="text-indigo-500" size={24} />
                       <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">{league} League - Meta Completo</h2>
                     </div>
-                    {/* Botão Criar String (MANTIDO) */}
                     <button onClick={() => copySearchString(sortedMetaList[league])} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-indigo-600/20 hover:text-indigo-400 hover:border-indigo-500/50 border border-zinc-700 rounded-xl text-xs font-bold uppercase transition-all">
                       <Copy size={14} /> Criar String
                     </button>
                   </div>
-                  
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {sortedMetaList[league]?.map((poke: any) => {
                       const isOwned = ownedPokemonNames.has(poke.nome.toLowerCase());
                       return (
                         <div key={`${league}-${poke.nome}`} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-indigo-500/30 transition-all group">
+                          {/* Conteúdo do Card (Mantido Igual) */}
                           <div className="flex justify-between items-start mb-4">
                             <div className="flex gap-3 items-center">
-                             {poke.dex && (
-                                <img 
-                                  src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
-                                    (() => {
-                                      const n = poke.nome.toLowerCase();
-                                      let s = "";
-                                      if (n.includes("alola")) s += ".fALOLA";
-                                      if (n.includes("galar")) s += ".fGALARIAN";
-                                      if (n.includes("hisui")) s += ".fHISUIAN";
-                                      if (n.includes("paldea")) s += ".fPALDEA";
-                                      if (n.includes("pom-pom") || n.includes("pom_pom")) s += ".fPOMPOM";
-                                      if (n.includes("baile")) s += ".fBAILE";
-                                      if (n.includes("sensu")) s += ".fSENSU";
-                                      if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
-                                      if (poke.dex === 671 && !s) s += ".fWHITE"; 
-                                      if (n.includes("shadow")) s += ".fSHADOW";
-                                      return s;
-                                    })()
-                                  }.icon.png`}
-                                  alt={poke.nome}
-                                  className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
-                                  onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }}
-                                />
-                              )}
+                              {poke.dex && <img src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${(() => { const n = poke.nome.toLowerCase().replace(/[^a-z0-9]/g, ''); let s = ""; if (n.includes("alola")) s += ".fALOLA"; if (n.includes("galar")) s += ".fGALARIAN"; if (n.includes("hisui")) s += ".fHISUIAN"; if (n.includes("paldea")) s += ".fPALDEA"; if (n.includes("pompom")) s += ".fPOMPOM"; if (n.includes("baile")) s += ".fBAILE"; if (n.includes("sensu")) s += ".fSENSU"; if (n.includes("pau")) s += ".fPAU"; if (poke.dex === 671 && !s) s += ".fWHITE"; if (poke.dex === 973 && !s) s += ""; if (n.includes("shadow")) s += ".fSHADOW"; return s; })()}.icon.png`} alt={poke.nome} className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]" onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }} />}
                               <div>
                                 <h3 className={`text-base font-bold uppercase transition-colors truncate max-w-[140px] ${isOwned ? 'border border-green-500 text-green-400 bg-green-500/10 rounded-full px-2 py-0.5 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'group-hover:text-indigo-400'}`}>{poke.nome}</h3>
                                 <div className="flex flex-wrap gap-1 mt-1.5">{Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}</div>
                               </div>
                             </div>
                           </div>
-                          <div className="bg-black/40 p-3 rounded-xl border border-zinc-800/50 flex justify-between items-center">
-                            <span className="text-[10px] font-bold text-zinc-500 uppercase">Rank Global</span>
-                            <span className="text-sm font-black text-indigo-400">#{poke.rank_liga}</span>
-                          </div>
+                          <div className="bg-black/40 p-3 rounded-xl border border-zinc-800/50 flex justify-between items-center"><span className="text-[10px] font-bold text-zinc-500 uppercase">Rank Global</span><span className="text-sm font-black text-indigo-400">#{poke.rank_liga}</span></div>
                         </div>
                       );
                     })}
@@ -304,7 +276,6 @@ export default function DashboardPage() {
                 </div>
               </div>
               
-              {/* Botão Criar String (MANTIDO) */}
               <div className="flex justify-end">
                 <button 
                   onClick={() => {
@@ -330,31 +301,8 @@ export default function DashboardPage() {
                             <div key={`${typeName}-${poke.nome}`} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-purple-500/30 transition-all group">
                               <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-3 items-center">
-                                  {poke.dex && (
-                                <img 
-                                  src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
-                                    (() => {
-                                      const n = poke.nome.toLowerCase();
-                                      let s = "";
-                                      if (n.includes("alola")) s += ".fALOLA";
-                                      if (n.includes("galar")) s += ".fGALARIAN";
-                                      if (n.includes("hisui")) s += ".fHISUIAN";
-                                      if (n.includes("paldea")) s += ".fPALDEA";
-                                      if (n.includes("pom-pom") || n.includes("pom_pom")) s += ".fPOMPOM";
-                                      if (n.includes("baile")) s += ".fBAILE";
-                                      if (n.includes("sensu")) s += ".fSENSU";
-                                      if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
-                                      if (poke.dex === 671 && !s) s += ".fWHITE"; 
-                                      if (n.includes("shadow")) s += ".fSHADOW";
-                                      return s;
-                                    })()
-                                  }.icon.png`}
-                                  alt={poke.nome}
-                                  className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
-                                  onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }}
-                                />
-                              )}
-                              <div>
+                                  {poke.dex && <img src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${(() => { const n = poke.nome.toLowerCase().replace(/[^a-z0-9]/g, ''); let s = ""; if (n.includes("alola")) s += ".fALOLA"; if (n.includes("galar")) s += ".fGALARIAN"; if (n.includes("hisui")) s += ".fHISUIAN"; if (n.includes("paldea")) s += ".fPALDEA"; if (n.includes("pompom")) s += ".fPOMPOM"; if (n.includes("baile")) s += ".fBAILE"; if (n.includes("sensu")) s += ".fSENSU"; if (n.includes("pau")) s += ".fPAU"; if (poke.dex === 671 && !s) s += ".fWHITE"; if (poke.dex === 973 && !s) s += ""; if (n.includes("shadow")) s += ".fSHADOW"; return s; })()}.icon.png`} alt={poke.nome} className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]" onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }} />}
+                                  <div>
                                     <h3 className={`text-base font-bold uppercase transition-colors truncate max-w-[140px] ${isOwned ? 'border border-green-500 text-green-400 bg-green-500/10 rounded-full px-2 py-0.5 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'group-hover:text-purple-400'}`}>{poke.nome}</h3>
                                     <div className="flex flex-wrap gap-1 mt-1.5">{Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}</div>
                                   </div>
@@ -380,7 +328,6 @@ export default function DashboardPage() {
                   <Trophy className="text-blue-500" size={24} />
                   <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">{leagueName} League</h2>
                 </div>
-                {/* Botão removido daqui conforme solicitado */}
                 
                 <div className="space-y-10">
                   {Object.entries(types).map(([typeName, pokemons]: [string, any]) => {
@@ -393,31 +340,8 @@ export default function DashboardPage() {
                             <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
                               <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-3">
-                                  {poke.dex && (
-                                <img 
-                                  src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
-                                    (() => {
-                                      const n = poke.nome.toLowerCase();
-                                      let s = "";
-                                      if (n.includes("alola")) s += ".fALOLA";
-                                      if (n.includes("galar")) s += ".fGALARIAN";
-                                      if (n.includes("hisui")) s += ".fHISUIAN";
-                                      if (n.includes("paldea")) s += ".fPALDEA";
-                                      if (n.includes("pom-pom") || n.includes("pom_pom")) s += ".fPOMPOM";
-                                      if (n.includes("baile")) s += ".fBAILE";
-                                      if (n.includes("sensu")) s += ".fSENSU";
-                                      if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
-                                      if (poke.dex === 671 && !s) s += ".fWHITE"; 
-                                      if (n.includes("shadow")) s += ".fSHADOW";
-                                      return s;
-                                    })()
-                                  }.icon.png`}
-                                  alt={poke.nome}
-                                  className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
-                                  onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }}
-                                />
-                              )}
-                                <div>
+                                  {poke.dex && <img src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${(() => { const n = poke.nome.toLowerCase().replace(/[^a-z0-9]/g, ''); let s = ""; if (n.includes("alola")) s += ".fALOLA"; if (n.includes("galar")) s += ".fGALARIAN"; if (n.includes("hisui")) s += ".fHISUIAN"; if (n.includes("paldea")) s += ".fPALDEA"; if (n.includes("pom-pom")) s += ".fPOMPOM"; if (n.includes("baile")) s += ".fBAILE"; if (n.includes("sensu")) s += ".fSENSU"; if (n.includes("p'au")) s += ".fPAU"; if (poke.dex === 671 && !s) s += ".fWHITE"; if (poke.dex === 973 && !s) s += ""; if (n.includes("shadow")) s += ".fSHADOW"; return s; })()}.icon.png`} alt={poke.nome} className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]" onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }} />}
+                                  <div>
                                     <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
                                     <div className="flex flex-wrap gap-1 mt-1.5">{Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}</div>
                                   </div>
