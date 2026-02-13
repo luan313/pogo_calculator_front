@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-// MUDANÇA 1: Adicionado Sparkles nas importações
-import { Plus, Loader2, LogOut, Sword, Trophy, BookmarkCheck, Globe, Sparkles } from 'lucide-react';
+// MUDANÇA 1: Adicionado 'List' para o ícone
+import { Plus, Loader2, LogOut, Sword, Trophy, BookmarkCheck, Globe, Sparkles, List } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import AddPokemonForm from '@/components/AddPokemonForm';
 
+// ... (const typeColors permanece igual) ...
 const typeColors: Record<string, string> = {
   overall: 'text-amber-400 border-amber-400/50 bg-amber-400/10 shadow-[0_0_15px_rgba(251,191,36,0.1)]',
   best_team: 'text-cyan-400 border-cyan-400/50 bg-cyan-400/10 shadow-[0_0_15px_rgba(34,211,238,0.1)]',
@@ -31,6 +32,7 @@ const typeColors: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  // ... (States e saveList permanecem iguais) ...
   const [tierList, setTierList] = useState<any>(null);
   const [metaList, setMetaList] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -40,34 +42,47 @@ export default function DashboardPage() {
   const [includeSpecials, setIncludeSpecials] = useState(false);
   const router = useRouter();
 
-  // Lista de guardar: Ordenada por número da Pokedex (dex)
   const saveList = useMemo(() => {
     if (!tierList) return [];
     const uniqueMap = new Map();
-    
     Object.values(tierList).forEach((leagueData: any) => {
       Object.values(leagueData).forEach((pokemonArray: any) => {
         if (Array.isArray(pokemonArray)) {
           pokemonArray.forEach((poke) => {
-            const uniqueKey = `${poke.nome}-${poke.ataque_iv}-${poke.defesa_iv}-${poke.hp_iv}`;
-            
-            uniqueMap.set(uniqueKey, poke);
+            uniqueMap.set(poke.id, poke);
           });
         }
       });
     });
-
-    return Array.from(uniqueMap.values()).sort((a: any, b: any) => 
-      a.dex - b.dex
-    );
+    return Array.from(uniqueMap.values()).sort((a: any, b: any) => a.dex - b.dex);
   }, [tierList]);
 
-  // NOVO: Cria um conjunto (Set) com os nomes dos pokémons que o usuário já possui
   const ownedPokemonNames = useMemo(() => {
     return new Set(saveList.map((p: any) => p.nome.toLowerCase()));
   }, [saveList]);
 
-  // Auxiliar para pegar as chaves corretas do JSON baseadas na liga
+  // NOVO: Organiza o MetaList em 3 listas (Great, Ultra, Master) ordenadas por Rank
+  const sortedMetaList = useMemo(() => {
+    if (!metaList) return {};
+    const result: Record<string, any[]> = {};
+    
+    ['great', 'ultra', 'master'].forEach(league => {
+      const uniqueMap = new Map();
+      if (metaList[league]) {
+        // Percorre todos os tipos e junta os pokémons removendo duplicatas pelo nome
+        Object.values(metaList[league]).forEach((pokemons: any) => {
+          if (Array.isArray(pokemons)) {
+            pokemons.forEach((p: any) => uniqueMap.set(p.nome, p));
+          }
+        });
+      }
+      // Converte para array e ordena pelo rank da liga
+      result[league] = Array.from(uniqueMap.values()).sort((a: any, b: any) => a.rank_liga - b.rank_liga);
+    });
+    return result;
+  }, [metaList]);
+
+  // ... (getRankKeys, fetchMeta, fetchMyPokemons, useEffect, handleLogout permanecem iguais) ...
   const getRankKeys = (leagueName: string) => {
     const name = leagueName.toLowerCase();
     if (name.includes('ultra')) return { iv: 'rank_iv_ultra', rank: 'rank_liga_ultra' };
@@ -75,18 +90,14 @@ export default function DashboardPage() {
     return { iv: 'rank_iv_grande', rank: 'rank_liga_grande' };
   };
 
-  // MUDANÇA 3: Atualizado fetchMeta para incluir o parametro na URL e depender do estado
   const fetchMeta = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const api_url = process.env.NEXT_PUBLIC_API_URL;
-      
-      // Passa o booleano como query param
       const res = await fetch(`${api_url}/get_meta?include_specials=${includeSpecials}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
-      
       if (res.ok) {
         const data = await res.json();
         setMetaList(data);
@@ -94,7 +105,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error("Erro ao carregar meta:", err);
     }
-  }, [includeSpecials]); // Adicionado includeSpecials como dependência para refazer o fetch ao mudar
+  }, [includeSpecials]);
 
   const fetchMyPokemons = useCallback(async () => {
     setLoading(true);
@@ -116,18 +127,12 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchMyPokemons();
-    fetchMeta();
-  }, [fetchMyPokemons, fetchMeta]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.refresh();
-  };
+  useEffect(() => { fetchMyPokemons(); fetchMeta(); }, [fetchMyPokemons, fetchMeta]);
+  const handleLogout = async () => { await supabase.auth.signOut(); router.refresh(); };
 
   return (
     <main className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto bg-black text-white">
+      {/* ... (Header mantido igual) ... */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10 border-b border-zinc-900 pb-8">
         <div>
           <h1 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-2">
@@ -157,21 +162,24 @@ export default function DashboardPage() {
             <button onClick={() => setActiveLeague(activeLeague === 'save_list' ? null : 'save_list')} className={`px-8 py-4 rounded-2xl font-black uppercase tracking-tighter transition-all border flex items-center gap-2 ${activeLeague === 'save_list' ? 'bg-amber-600 border-amber-500 text-white shadow-lg shadow-amber-600/20' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}><BookmarkCheck size={20} /> Quais pokémon guardar</button>
 
             <button onClick={() => setActiveLeague(activeLeague === 'meta' ? null : 'meta')} className={`px-8 py-4 rounded-2xl font-black uppercase tracking-tighter transition-all border flex items-center gap-2 ${activeLeague === 'meta' ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-600/20' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}><Globe size={20} /> Meta Global</button>
+
+            {/* MUDANÇA 2: Novo botão "Todos do Meta" */}
+            <button onClick={() => setActiveLeague(activeLeague === 'meta_all' ? null : 'meta_all')} className={`px-8 py-4 rounded-2xl font-black uppercase tracking-tighter transition-all border flex items-center gap-2 ${activeLeague === 'meta_all' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}><List size={20} /> Todos do Meta</button>
           </div>
 
+          {/* ... (Seção save_list mantida igual) ... */}
           {activeLeague === 'save_list' && (
-            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              {/* ... (conteúdo do save_list mantido igual) ... */}
-              <div className="flex items-center gap-3">
-                <BookmarkCheck className="text-amber-500" size={24} />
-                <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">Pokémons Essenciais</h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {saveList.map((poke: any) => (
-                  <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex gap-3">
-                        {poke.dex && (
+             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center gap-3">
+                  <BookmarkCheck className="text-amber-500" size={24} />
+                  <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">Pokémons Essenciais</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {saveList.map((poke: any) => (
+                    <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex gap-3">
+                          {poke.dex && (
                           <img 
                             src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
                               (() => {
@@ -194,77 +202,104 @@ export default function DashboardPage() {
                             className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
                             onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }}
                           />
-                        )}                        
+                        )}
                         <div>
-                          <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}
+                            <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
+                            <div className="flex flex-wrap gap-1 mt-1.5">{Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}</div>
                           </div>
                         </div>
+                        <div className="bg-zinc-800/50 p-2 rounded-xl border border-zinc-800 text-center min-w-[60px]">
+                          <p className="text-[7px] font-black text-zinc-500 uppercase leading-none mb-1">IV</p>
+                          <p className="text-xs font-black text-white">{poke.ataque_iv}/{poke.defesa_iv}/{poke.hp_iv}</p>
+                        </div>
                       </div>
-                      <div className="bg-zinc-800/50 p-2 rounded-xl border border-zinc-800 text-center min-w-[60px]">
-                        <p className="text-[7px] font-black text-zinc-500 uppercase leading-none mb-1">IV</p>
-                        <p className="text-xs font-black text-white">{poke.ataque_iv}/{poke.defesa_iv}/{poke.hp_iv}</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
-                        <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">IV Rank</p>
-                        <p className="text-xs font-black text-blue-500">#{poke.rank_iv_grande || '-'}</p>
-                      </div>
-                      <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
-                        <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">League Rank</p>
-                        <p className="text-xs font-black text-amber-500">#{poke.rank_liga_grande || '-'}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center"><p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">IV Rank</p><p className="text-xs font-black text-blue-500">#{poke.rank_iv_grande || '-'}</p></div>
+                        <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center"><p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">League Rank</p><p className="text-xs font-black text-amber-500">#{poke.rank_liga_grande || '-'}</p></div>
                       </div>
                     </div>
+                  ))}
+                </div>
+             </section>
+          )}
+
+          {/* --- NOVA SEÇÃO: TODOS DO META --- */}
+          {activeLeague === 'meta_all' && sortedMetaList && (
+            <section className="space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {['great', 'ultra', 'master'].map((league) => (
+                <div key={league} className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <Globe className="text-indigo-500" size={24} />
+                    <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">{league} League - Meta Completo</h2>
                   </div>
-                ))}
-              </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {sortedMetaList[league]?.map((poke: any) => {
+                      const isOwned = ownedPokemonNames.has(poke.nome.toLowerCase());
+                      return (
+                        <div key={`${league}-${poke.nome}`} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-indigo-500/30 transition-all group">
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex gap-3 items-center">
+                              {poke.dex && (
+                                <img 
+                                  src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
+                                    (() => {
+                                      const n = poke.nome.toLowerCase();
+                                      let s = "";
+                                      if (n.includes("alola")) s += ".fALOLA";
+                                      if (n.includes("galar")) s += ".fGALARIAN";
+                                      if (n.includes("hisui")) s += ".fHISUIAN";
+                                      if (n.includes("paldea")) s += ".fPALDEA";
+                                      if (n.includes("pom-pom") || n.includes("pom_pom")) s += ".fPOMPOM";
+                                      if (n.includes("baile")) s += ".fBAILE";
+                                      if (n.includes("sensu")) s += ".fSENSU";
+                                      if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
+                                      if (poke.dex === 671 && !s) s += ".fWHITE"; 
+                                      if (n.includes("shadow")) s += ".fSHADOW";
+                                      return s;
+                                    })()
+                                  }.icon.png`}
+                                  alt={poke.nome}
+                                  className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
+                                  onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }}
+                                />
+                              )}
+                              <div>
+                                <h3 className={`text-base font-bold uppercase transition-colors truncate max-w-[140px] ${isOwned ? 'border border-green-500 text-green-400 bg-green-500/10 rounded-full px-2 py-0.5 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'group-hover:text-indigo-400'}`}>{poke.nome}</h3>
+                                <div className="flex flex-wrap gap-1 mt-1.5">{Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="bg-black/40 p-3 rounded-xl border border-zinc-800/50 flex justify-between items-center">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase">Rank Global</span>
+                            <span className="text-sm font-black text-indigo-400">#{poke.rank_liga}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </section>
           )}
 
+          {/* ... (Seção Meta Global mantida igual) ... */}
           {activeLeague === 'meta' && metaList && (
             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-3">
-                  <Globe className="text-purple-500" size={24} />
-                  <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">Meta do Jogo</h2>
-                </div>
-
-                {/* MUDANÇA 4: Adicionado o botão de toggle na mesma linha dos filtros de liga */}
+                <div className="flex items-center gap-3"><Globe className="text-purple-500" size={24} /><h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">Meta do Jogo</h2></div>
                 <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex gap-2">
-                    {['great', 'ultra', 'master'].map((league) => (
-                      <button key={league} onClick={() => setActiveMetaLeague(league)} className={`px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider border transition-all ${activeMetaLeague === league ? 'bg-purple-600/20 border-purple-500 text-purple-400' : 'bg-zinc-900 border-zinc-800 text-zinc-600 hover:text-zinc-400'}`}>{league} League</button>
-                    ))}
-                  </div>
-
+                  <div className="flex gap-2">{['great', 'ultra', 'master'].map((league) => (<button key={league} onClick={() => setActiveMetaLeague(league)} className={`px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider border transition-all ${activeMetaLeague === league ? 'bg-purple-600/20 border-purple-500 text-purple-400' : 'bg-zinc-900 border-zinc-800 text-zinc-600 hover:text-zinc-400'}`}>{league} League</button>))}</div>
                   <div className="w-px h-8 bg-zinc-800 mx-2 hidden sm:block"></div>
-
-                  <button
-                    onClick={() => setIncludeSpecials(!includeSpecials)}
-                    className={`px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider border transition-all flex items-center gap-2 ${
-                      includeSpecials
-                        ? 'bg-amber-600/20 border-amber-500 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-600 hover:text-zinc-400'
-                    }`}
-                  >
-                    <Sparkles size={16} />
-                    {includeSpecials ? 'Incluindo Especiais' : 'Incluir Especiais'}
-                  </button>
+                  <button onClick={() => setIncludeSpecials(!includeSpecials)} className={`px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider border transition-all flex items-center gap-2 ${includeSpecials ? 'bg-amber-600/20 border-amber-500 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)]' : 'bg-zinc-900 border-zinc-800 text-zinc-600 hover:text-zinc-400'}`}><Sparkles size={16} />{includeSpecials ? 'Incluindo Especiais' : 'Incluir Especiais'}</button>
                 </div>
               </div>
-
               <div className="space-y-10">
                 {metaList[activeMetaLeague] && Object.entries(metaList[activeMetaLeague]).map(([typeName, pokemons]: [string, any]) => {
                   const typeStyle = typeColors[typeName.toLowerCase()] || 'text-zinc-500 border-zinc-800 bg-zinc-900/50';
-                  
                   return Array.isArray(pokemons) && pokemons.length > 0 && (
                     <div key={typeName} className="space-y-4">
-                      <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1 border rounded-full inline-block ${typeStyle}`}>
-                        Tipo: {typeName}
-                      </h3>
-
+                      <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1 border rounded-full inline-block ${typeStyle}`}>Tipo: {typeName}</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                         {pokemons.map((poke: any) => {
                           const isOwned = ownedPokemonNames.has(poke.nome.toLowerCase());
@@ -287,7 +322,6 @@ export default function DashboardPage() {
                                           if (n.includes("sensu")) s += ".fSENSU";
                                           if (n.includes("p'au") || n.includes("pa'u") || n.includes("pau")) s += ".fPAU";
                                           if (poke.dex === 671 && !s) s += ".fWHITE"; 
-                                          if (poke.dex === 973 && !s) s += ""; 
                                           if (n.includes("shadow")) s += ".fSHADOW";
                                           return s;
                                         })()
@@ -299,16 +333,11 @@ export default function DashboardPage() {
                                   )}
                                   <div>
                                     <h3 className={`text-base font-bold uppercase transition-colors truncate max-w-[140px] ${isOwned ? 'border border-green-500 text-green-400 bg-green-500/10 rounded-full px-2 py-0.5 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'group-hover:text-purple-400'}`}>{poke.nome}</h3>
-                                    <div className="flex flex-wrap gap-1 mt-1.5">
-                                      {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}
-                                    </div>
+                                    <div className="flex flex-wrap gap-1 mt-1.5">{Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}</div>
                                   </div>
                                 </div>
                               </div>
-                              <div className="bg-black/40 p-3 rounded-xl border border-zinc-800/50 flex justify-between items-center">
-                                <span className="text-[10px] font-bold text-zinc-500 uppercase">Rank Global</span>
-                                <span className="text-sm font-black text-purple-400">#{poke.rank_liga}</span>
-                              </div>
+                              <div className="bg-black/40 p-3 rounded-xl border border-zinc-800/50 flex justify-between items-center"><span className="text-[10px] font-bold text-zinc-500 uppercase">Rank Global</span><span className="text-sm font-black text-purple-400">#{poke.rank_liga}</span></div>
                             </div>
                           );
                         })}
@@ -324,10 +353,7 @@ export default function DashboardPage() {
             const { iv, rank } = getRankKeys(leagueName);
             return activeLeague === leagueName && (
               <section key={leagueName} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center gap-3">
-                  <Trophy className="text-blue-500" size={24} />
-                  <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">{leagueName} League</h2>
-                </div>
+                <div className="flex items-center gap-3"><Trophy className="text-blue-500" size={24} /><h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-200">{leagueName} League</h2></div>
                 <div className="space-y-10">
                   {Object.entries(types).map(([typeName, pokemons]: [string, any]) => {
                     const typeStyle = typeColors[typeName.toLowerCase()] || 'text-zinc-500 border-zinc-800 bg-zinc-900/50';
@@ -339,7 +365,7 @@ export default function DashboardPage() {
                             <div key={poke.id} className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[1.5rem] hover:border-amber-500/30 transition-all group">
                               <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-3">
-                                 {poke.dex && (
+                                  {poke.dex && (
                                     <img 
                                       src={`https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Pokemon/Addressable%20Assets/pm${poke.dex}${
                                         (() => {
@@ -362,28 +388,16 @@ export default function DashboardPage() {
                                       className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]"
                                       onError={(e) => { e.currentTarget.src = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/pokeball_sprite.png"; }}
                                     />
-                                  )}
-                                  <div>
+                                  )}                                  <div>
                                     <h3 className="text-base font-bold uppercase group-hover:text-amber-400 transition-colors truncate max-w-[120px]">{poke.nome}</h3>
-                                    <div className="flex flex-wrap gap-1 mt-1.5">
-                                      {Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}
-                                    </div>
+                                    <div className="flex flex-wrap gap-1 mt-1.5">{Array.isArray(poke.tipo) && poke.tipo.map((t: string) => (<span key={t} className="text-[8px] font-black uppercase bg-zinc-800 px-1.5 py-0.5 rounded-md text-zinc-400 border border-zinc-700">{t}</span>))}</div>
                                   </div>
                                 </div>
-                                <div className="bg-zinc-800/50 p-2 rounded-xl border border-zinc-800 text-center min-w-[60px]">
-                                  <p className="text-[7px] font-black text-zinc-500 uppercase leading-none mb-1">IV</p>
-                                  <p className="text-xs font-black text-white">{poke.ataque_iv}/{poke.defesa_iv}/{poke.hp_iv}</p>
-                                </div>
+                                <div className="bg-zinc-800/50 p-2 rounded-xl border border-zinc-800 text-center min-w-[60px]"><p className="text-[7px] font-black text-zinc-500 uppercase leading-none mb-1">IV</p><p className="text-xs font-black text-white">{poke.ataque_iv}/{poke.defesa_iv}/{poke.hp_iv}</p></div>
                               </div>
                               <div className="grid grid-cols-2 gap-2">
-                                <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
-                                  <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">IV Rank</p>
-                                  <p className="text-xs font-black text-blue-500">#{poke[iv] || '-'}</p>
-                                </div>
-                                <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center">
-                                  <p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">League Rank</p>
-                                  <p className="text-xs font-black text-amber-500">#{poke[rank] || '-'}</p>
-                                </div>
+                                <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center"><p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">IV Rank</p><p className="text-xs font-black text-blue-500">#{poke[iv] || '-'}</p></div>
+                                <div className="bg-black/40 p-2 rounded-xl border border-zinc-800/50 text-center"><p className="text-[7px] font-bold text-zinc-600 uppercase mb-0.5">League Rank</p><p className="text-xs font-black text-amber-500">#{poke[rank] || '-'}</p></div>
                               </div>
                             </div>
                           ))}
@@ -399,9 +413,7 @@ export default function DashboardPage() {
       ) : (
         <div className="text-center py-32 bg-zinc-900/20 border-2 border-dashed border-zinc-900 rounded-[3rem]">
           <p className="text-zinc-500 font-bold uppercase text-sm tracking-widest">Nenhum dado encontrado</p>
-          <button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-500 font-black text-xs uppercase hover:tracking-widest transition-all">
-            + Adicionar Primeiro Pokémon
-          </button>
+          <button onClick={() => setIsModalOpen(true)} className="mt-4 text-blue-500 font-black text-xs uppercase hover:tracking-widest transition-all">+ Adicionar Primeiro Pokémon</button>
         </div>
       )}
 
